@@ -39,8 +39,14 @@ int buttonvals[13];
 #define POT_MEDIUM        1
 #define POT_LARGE         0
 
+int pots[4] = {POT_TRIM, POT_SMALL, POT_MEDIUM, POT_LARGE};
+int potcals[4];
+
+
+uint8_t BeatsPerMinute = 62;
 
 void setup() {
+  //Serial.begin(9600);
   pinMode(0, INPUT_PULLUP);
   pinMode(1, INPUT_PULLUP);
   pinMode(3, INPUT_PULLUP);
@@ -63,12 +69,12 @@ void setup() {
   //FastLED.addLeds<LED_TYPE,DATA_PIN,CLK_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
   // set master brightness control
-  FastLED.setBrightness(BRIGHTNESS);
+  //FastLED.setBrightness(BRIGHTNESS);
 }
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = { buttonDebug, rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
+SimplePatternList gPatterns = {rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
@@ -81,22 +87,35 @@ void loop() {
   // send the 'leds' array out to the actual LED strip
   FastLED.show();
   // insert a delay to keep the framerate modest
-  FastLED.delay(1000/FRAMES_PER_SECOND); 
-
-  fadeToBlackBy( leds, NUM_LEDS, 10);
+  FastLED.delay(1000/FRAMES_PER_SECOND);
   
   // do some periodic updates
   //EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
   //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
-  
+
+  // Buttons
   for(int i=0; i<9; i++){
     //buttonsvals[i] = digitalRead(buttons[i]);
     if((buttons[i] != BTN_RED)){
-      if(digitalRead(buttons[i]) == LOW){
-       gPatterns[i%6]();
+      if(digitalRead(BTN_FLIP1_UP) == LOW){
+        if(digitalRead(buttons[i]) == LOW){
+          gCurrentPatternNumber = i%6;
+        }
+      gPatterns[gCurrentPatternNumber]();
+      } else {
+        if(digitalRead(buttons[i]) == LOW){
+          gPatterns[i%6]();
+        }
       }
     }
   }
+
+  // Potentiometers
+  gHue = (analogRead(POT_LARGE)/4);
+  //Serial.println(analogRead(POT_LARGE));
+  FastLED.setBrightness(255-(analogRead(POT_TRIM)/4));
+  BeatsPerMinute = analogRead(POT_MEDIUM)/4;
+  
 }
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
@@ -159,7 +178,7 @@ void sinelon()
 void bpm()
 {
   // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-  uint8_t BeatsPerMinute = 62;
+  //uint8_t BeatsPerMinute = 62;
   CRGBPalette16 palette = PartyColors_p;
   uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
   for( int i = 0; i < NUM_LEDS; i++) { //9948
