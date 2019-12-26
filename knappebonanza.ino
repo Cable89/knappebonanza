@@ -28,8 +28,8 @@ CRGB leds[NUM_LEDS];
 #define BTN_BLACK         4  // 8
 #define BTN_FLIP1_DOWN    5  // 9
 #define BTN_FLIP1_UP      6  // 10
-#define BTN_FLIP2_DOWN    8  // 11
-#define BTN_FLIP2_UP      7  // 12
+#define BTN_FLIP2_DOWN    7  // 11
+#define BTN_FLIP2_UP      8  // 12
 
 int buttons[13] = {BTN_ARCADE_RED, BTN_ARCADE_ORANGE, BTN_ARCADE_YELLOW, BTN_ARCADE_PINK, BTN_ARCADE_BLACK, BTN_ARCADE_GREEN, BTN_BLUE, BTN_RED, BTN_BLACK, BTN_FLIP1_UP, BTN_FLIP1_DOWN, BTN_FLIP2_UP, BTN_FLIP2_DOWN};
 int buttonvals[13];
@@ -46,7 +46,7 @@ int potcals[4];
 uint8_t BeatsPerMinute = 62;
 
 void setup() {
-  //Serial.begin(9600);
+  Serial.begin(9600);
   pinMode(0, INPUT_PULLUP);
   pinMode(1, INPUT_PULLUP);
   pinMode(3, INPUT_PULLUP);
@@ -93,29 +93,57 @@ void loop() {
   //EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
   //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
 
-  // Buttons
   for(int i=0; i<9; i++){
     //buttonsvals[i] = digitalRead(buttons[i]);
     if((buttons[i] != BTN_RED)){
-      if(digitalRead(BTN_FLIP1_UP) == LOW){
+      if(digitalRead(BTN_FLIP1_DOWN) == HIGH){  // How pattern selection works
+        //Serial.println("MODE: Manual selection continous");
         if(digitalRead(buttons[i]) == LOW){
           gCurrentPatternNumber = i%6;
         }
-      gPatterns[gCurrentPatternNumber]();
+        gPatterns[gCurrentPatternNumber]();
       } else {
+        //Serial.println("MODE: Manual selection single");
         if(digitalRead(buttons[i]) == LOW){
           gPatterns[i%6]();
         }
       }
     }
   }
-
+  
+  if((digitalRead(BTN_FLIP2_UP) == HIGH) && (digitalRead(BTN_FLIP2_DOWN) == HIGH)){  // How hue selection works
+    //Serial.println("MODE: Hue sweep");
+    EVERY_N_MILLISECONDS( 128-(analogRead(POT_SMALL)/8) ) { gHue++; } // slowly cycle the "base color" through the rainbow
+  } else {
+    //Serial.println("MODE: Manual Hue");
+    gHue = (uint8_t)(analogRead(POT_LARGE)/4);
+  }
+  
+  if((digitalRead(BTN_FLIP1_DOWN) == LOW) && (digitalRead(BTN_FLIP2_DOWN) == LOW)){
+    //Serial.println("MODE: Cycle patterns");
+    EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
+    gPatterns[gCurrentPatternNumber]();
+  }
+  
   // Potentiometers
-  gHue = (analogRead(POT_LARGE)/4);
   //Serial.println(analogRead(POT_LARGE));
   FastLED.setBrightness(255-(analogRead(POT_TRIM)/4));
   BeatsPerMinute = analogRead(POT_MEDIUM)/4;
-  
+  /*
+  Serial.print("POT_LARGE: ");
+  Serial.println(analogRead(POT_LARGE)/4);
+  */
+  // DEBUG
+  /*
+  Serial.print("FLIP1_UP: ");
+  Serial.print(digitalRead(BTN_FLIP1_UP));
+  Serial.print(" FLIP1_DOWN: ");
+  Serial.print(digitalRead(BTN_FLIP1_DOWN));
+  Serial.print(" FLIP2_UP: ");
+  Serial.print(digitalRead(BTN_FLIP2_UP));
+  Serial.print(" FLIP2_DOWN: ");
+  Serial.println(digitalRead(BTN_FLIP2_DOWN));
+  */
 }
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
